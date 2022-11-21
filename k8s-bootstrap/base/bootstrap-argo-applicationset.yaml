@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: demo-application-set
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/your-id/ArgoCD-ApplicationSet-Demo.git
+        revision: HEAD
+        directories:
+          # here it will read the paths under configs and the subpaths under the config paths
+          - path: demo/configs/*/*
+  template:
+    metadata:
+      namespace: argocd
+      # you can use the path strings with / delimiter as variables
+      name: "{{path[2]}}-{{path.basename}}"
+    spec:
+      project: default
+      source:
+        helm:
+          # specify different values file based on directories variables
+          valueFiles:
+            - "configs/{{path[2]}}/{{path.basename}}/values.yaml"
+            - "configs/{{path[2]}}/values.yaml"
+        path: demo
+        repoURL: https://github.com/your-id/ArgoCD-ApplicationSet-Demo.git
+        targetRevision: HEAD
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+      destination:
+        # specify different destinations
+        namespace: "{{path.basename}}"
+        server: https://kubernetes.default.svc
+
